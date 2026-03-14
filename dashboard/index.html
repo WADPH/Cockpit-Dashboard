@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dashboard</title>
+<script src="../base1/cockpit.js"></script>
+<link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<div class="page-shell">
+  <header class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+        <p class="page-description">Track services and run quick scripts directly from the Cockpit</p>
+    </div>
+
+    <div class="header-actions">
+      <div class="refresh-controls">
+        <button id="refresh-statuses" class="secondary-button" type="button">Refresh</button>
+        <label class="inline-field" for="refresh-interval">
+          <span>Auto refresh</span>
+          <select id="refresh-interval" class="select-input">
+            <option value="0">Off</option>
+            <option value="5">5 sec</option>
+            <option value="10" selected>10 sec</option>
+            <option value="15">15 sec</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="create-controls">
+        <button id="add-script" class="ghost-button" type="button">Add Script</button>
+        <button id="add-service" class="primary-button" type="button">Add Service</button>
+      </div>
+    </div>
+  </header>
+
+  <section id="notification" class="notification hidden" aria-live="polite"></section>
+
+  <section class="dashboard-section">
+    <div class="section-header">
+      <div>
+        <h2>SERVICES</h2>
+      </div>
+    </div>
+    <section id="services" class="card-grid" aria-live="polite"></section>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="section-header">
+      <div>
+        <h2>SCRIPTS</h2>
+      </div>
+    </div>
+    <section id="commands" class="card-grid command-grid" aria-live="polite"></section>
+  </section>
+
+  <template id="service-card-template">
+    <article class="dashboard-card service-card" draggable="true">
+      <div class="service-header-row">
+        <h3 class="service-title"></h3>
+        <span class="status-badge">Unknown</span>
+      </div>
+
+      <div>
+        <p class="service-name"></p>
+      </div>
+
+      <div class="card-actions">
+        <button class="secondary-button action-start" type="button">Start</button>
+        <button class="secondary-button action-stop" type="button">Stop</button>
+        <button class="ghost-button action-title" type="button">Rename</button>
+        <button class="danger-button action-delete" type="button">Delete</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="command-card-template">
+    <article class="dashboard-card command-card">
+
+      <div>
+        <h3 class="command-title"></h3>
+      </div>
+
+      <div class="card-actions">
+        <button class="primary-button action-run-script" type="button">Run</button>
+        <button class="ghost-button action-edit-script" type="button">Edit</button>
+        <button class="danger-button action-delete-script" type="button">Delete</button>
+      </div>
+    </article>
+  </template>
+</div>
+
+<div id="service-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="service-modal-title">
+  <div class="modal-backdrop" data-close-modal="service"></div>
+  <div class="modal-panel modal-large">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">Dashboard</p>
+        <h2 id="service-modal-title">Add service</h2>
+      </div>
+      <button class="icon-button" type="button" data-close-modal="service" aria-label="Close">x</button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field-label" for="service-search">Find systemd service</label>
+      <input id="service-search" class="text-input" type="search" placeholder="Type the first letters of a service name">
+
+      <div id="service-picker-status" class="picker-status">Loading services...</div>
+      <div id="service-picker" class="service-picker" role="listbox" aria-label="Available systemd services"></div>
+
+      <label class="field-label" for="service-title-input">Card title</label>
+      <input id="service-title-input" class="text-input" type="text" placeholder="Optional display title">
+    </div>
+
+    <div class="modal-actions">
+      <button id="service-save" class="primary-button" type="button" disabled>Add service</button>
+      <button class="secondary-button" type="button" data-close-modal="service">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="script-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="script-modal-title">
+  <div class="modal-backdrop" data-close-modal="script"></div>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">Quick Scripts</p>
+        <h2 id="script-modal-title">Add quick script</h2>
+      </div>
+      <button class="icon-button" type="button" data-close-modal="script" aria-label="Close">x</button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field-label" for="script-title-input">Display name</label>
+      <input id="script-title-input" class="text-input" type="text" placeholder="Example: Backup logs">
+
+      <label class="field-label" for="script-command-input">Command</label>
+      <textarea id="script-command-input" class="text-area" rows="6" placeholder="Example: bash ~/custom-script.sh"></textarea>
+      <p class="helper-text">The command runs on the server through `bash -lc`.</p>
+    </div>
+
+    <div class="modal-actions">
+      <button id="script-save" class="primary-button" type="button">Save script</button>
+      <button class="secondary-button" type="button" data-close-modal="script">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+  <div class="modal-backdrop" data-close-modal="confirm"></div>
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">Confirmation</p>
+        <h2 id="confirm-modal-title">Delete item?</h2>
+      </div>
+      <button class="icon-button" type="button" data-close-modal="confirm" aria-label="Close">x</button>
+    </div>
+
+    <div class="modal-body">
+      <p id="confirm-modal-text" class="confirm-text"></p>
+    </div>
+
+    <div class="modal-actions">
+      <button id="confirm-delete" class="danger-button" type="button">Delete</button>
+      <button class="secondary-button" type="button" data-close-modal="confirm">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="dashboard.js"></script>
+</body>
+</html>

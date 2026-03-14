@@ -1,0 +1,15 @@
+{
+  "version": 0,
+  "menu": {
+    "mytools": {
+        "order": 11,
+      "label": "Dashboard",
+      "path": "index.html",
+      "keywords": [
+        {
+          "matches": ["dashboard", "home", "welcome"]
+        }
+      ]
+    }
+  }
+}
